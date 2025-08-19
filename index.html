@@ -1,273 +1,463 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Quiz Excel (estilo Kahoot)</title>
-<style>
-  :root{
-    --bg1:#46178f; /* roxo kahoot-like */
-    --bg2:#8520e9;
-    --card:#ffffff;
-    --text:#1a1a1a;
-    --muted:#6b6b6b;
-    --ok:#22c55e;
-    --err:#ef4444;
-    --red:#e21b3c;    /* ▲ */
-    --blue:#1368ce;   /* ◆ */
-    --yellow:#ffa602; /* ● */
-    --green:#26890c;  /* ■ */
-  }
-  html,body{height:100%;}
-  body{
-    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;
-    background: radial-gradient(1200px 700px at 20% -10%, var(--bg2), transparent),
-                radial-gradient(1200px 700px at 80% -10%, var(--bg1), transparent),
-                linear-gradient(180deg, var(--bg1), var(--bg2));
-    color:#fff; display:flex; align-items:center; justify-content:center; padding:24px;
-  }
-  .app{
-    width:min(900px, 100%); background:rgba(255,255,255,.1); border-radius:24px; padding:20px;
-    box-shadow:0 10px 40px rgba(0,0,0,.25); backdrop-filter: blur(6px);
-  }
-  .header{
-    display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:12px;
-  }
-  .brand{font-weight:800; letter-spacing:.5px;}
-  .chip{
-    background:rgba(255,255,255,.18); border-radius:999px; padding:6px 12px; font-size:14px;
-  }
-  .card{
-    background:var(--card); color:var(--text); border-radius:20px; padding:22px; margin-top:10px;
-    box-shadow:0 8px 24px rgba(0,0,0,.18);
-  }
-  .qtext{ font-size:clamp(18px, 2.4vw, 26px); font-weight:700; line-height:1.25; }
-  .meta{ color:var(--muted); font-size:14px; margin-top:6px; }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Quiz Excel (estilo Kahoot)</title>
+    <style>
+      :root {
+        --bg1: #46178f; /* roxo kahoot-like */
+        --bg2: #8520e9;
+        --card: #ffffff;
+        --text: #1a1a1a;
+        --muted: #6b6b6b;
+        --ok: #22c55e;
+        --err: #ef4444;
+        --red: #e21b3c; /* ▲ */
+        --blue: #1368ce; /* ◆ */
+        --yellow: #ffa602; /* ● */
+        --green: #26890c; /* ■ */
+      }
 
-  .answers{ display:grid; gap:12px; margin-top:18px; }
-  @media(min-width:680px){ .answers{ grid-template-columns:1fr 1fr; } }
+      html,
+      body {
+        height: 100%;
+      }
 
-  .btn{
-    border:0; border-radius:16px; padding:16px 14px; text-align:left; font-size:16px; font-weight:700;
-    color:#fff; cursor:pointer; display:flex; align-items:center; gap:12px; min-height:72px;
-    box-shadow:0 6px 0 rgba(0,0,0,.2), inset 0 -3px 0 rgba(0,0,0,.15);
-    transition: transform .06s ease, filter .2s ease, box-shadow .06s ease;
-  }
-  .btn:active{ transform: translateY(2px); box-shadow:0 4px 0 rgba(0,0,0,.2), inset 0 -1px 0 rgba(0,0,0,.1);}
-  .btn[disabled]{ filter:grayscale(.2) brightness(.85); cursor:not-allowed; }
+      /* CORRIGIDO: remove o flex que cortava o relatório; permite rolagem da página */
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+          "Helvetica Neue", Arial;
+        background: radial-gradient(
+            1200px 700px at 20% -10%,
+            var(--bg2),
+            transparent
+          ),
+          radial-gradient(1200px 700px at 80% -10%, var(--bg1), transparent),
+          linear-gradient(180deg, var(--bg1), var(--bg2));
+        color: #fff;
+        min-height: 100%;
+        overflow-y: auto; /* permite rolar */
+        padding: 24px;
+        scroll-behavior: smooth;
+      }
 
-  .shape{ font-size:22px; line-height:1; width:28px; height:28px; display:grid; place-items:center;
-          background:rgba(255,255,255,.15); border-radius:6px; }
-  .opt-red   { background:var(--red); }
-  .opt-blue  { background:var(--blue);}
-  .opt-yellow{ background:var(--yellow); color:#222;}
-  .opt-green { background:var(--green); }
+      /* ACRESCIDO: centraliza sem travar a altura */
+      .app {
+        width: min(900px, 100%);
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+        -webkit-backdrop-filter: blur(6px); /* Suporte Safari */
+        backdrop-filter: blur(6px); /* Padrão */
+      }
 
-  .feedback{
-    margin-top:14px; padding:12px 14px; border-radius:12px; font-weight:700; display:none;
-  }
-  .feedback.ok{ background:#e8fff1; color:#065f46; display:block; }
-  .feedback.err{ background:#ffecec; color:#7f1d1d; display:block; }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+      .brand {
+        font-weight: 800;
+        letter-spacing: 0.5px;
+      }
+      .chip {
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 14px;
+      }
 
-  .controls{ display:flex; justify-content:space-between; align-items:center; margin-top:16px; }
-  .progress{
-    height:10px; border-radius:999px; background:#eee; overflow:hidden; flex:1; margin-right:12px;
-  }
-  .bar{ height:100%; width:0%; background:linear-gradient(90deg,#22c1c3,#fdbb2d); transition:width .35s ease; }
+      .card {
+        background: var(--card);
+        color: var(--text);
+        border-radius: 20px;
+        padding: 22px;
+        margin-top: 10px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      }
+      .qtext {
+        font-size: clamp(18px, 2.4vw, 26px);
+        font-weight: 700;
+        line-height: 1.25;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 6px;
+      }
 
-  .next{
-    background:#111827; color:#fff; border:0; border-radius:999px; padding:10px 16px; font-weight:800;
-    letter-spacing:.3px; cursor:pointer;
-  }
-  .next[disabled]{ opacity:.5; cursor:not-allowed; }
+      .answers {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      @media (min-width: 680px) {
+        .answers {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
 
-  /* Resultados */
-  .results h2{ margin:0 0 6px 0; }
-  .stats{ display:flex; gap:10px; margin:8px 0 14px 0; flex-wrap:wrap; }
-  .stat{ background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); padding:10px 12px;
-         border-radius:12px; font-weight:700; }
-  .list{ margin-top:10px; display:grid; gap:10px; }
-  .item{
-    background:#fff; color:#222; border-radius:14px; padding:12px 14px; border-left:6px solid #ddd;
-  }
-  .item.ok{ border-left-color: var(--ok); }
-  .item.err{ border-left-color: var(--err); }
-  .small{ color:#666; font-size:14px; margin-top:6px; }
-  .again{ margin-top:14px; background:#111827; color:#fff; border:0; border-radius:10px; padding:12px 14px; font-weight:800; cursor:pointer;}
-</style>
-</head>
-<body>
-  <div class="app">
-    <div class="header">
-      <div class="brand">Quiz Excel • estilo Kahoot</div>
-      <div class="chip" id="counter">Pergunta 1 de N</div>
+      .btn {
+        border: 0;
+        border-radius: 16px;
+        padding: 16px 14px;
+        text-align: left;
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 72px;
+        box-shadow: 0 6px 0 rgba(0, 0, 0, 0.2),
+          inset 0 -3px 0 rgba(0, 0, 0, 0.15);
+        transition: transform 0.06s ease, filter 0.2s ease,
+          box-shadow 0.06s ease;
+      }
+      .btn:active {
+        transform: translateY(2px);
+        box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+      }
+      .btn[disabled] {
+        filter: grayscale(0.2) brightness(0.85);
+        cursor: not-allowed;
+      }
+
+      .shape {
+        font-size: 22px;
+        line-height: 1;
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 6px;
+      }
+      .opt-red {
+        background: var(--red);
+      }
+      .opt-blue {
+        background: var(--blue);
+      }
+      .opt-yellow {
+        background: var(--yellow);
+        color: #222;
+      }
+      .opt-green {
+        background: var(--green);
+      }
+
+      .feedback {
+        margin-top: 14px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-weight: 700;
+        display: none;
+      }
+      .feedback.ok {
+        background: #e8fff1;
+        color: #065f46;
+        display: block;
+      }
+      .feedback.err {
+        background: #ffecec;
+        color: #7f1d1d;
+        display: block;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 16px;
+      }
+      .progress {
+        height: 10px;
+        border-radius: 999px;
+        background: #eee;
+        overflow: hidden;
+        flex: 1;
+        margin-right: 12px;
+      }
+      .bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #22c1c3, #fdbb2d);
+        transition: width 0.35s ease;
+      }
+
+      .next {
+        background: #111827;
+        color: #fff;
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        cursor: pointer;
+      }
+      .next[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Resultados */
+      .results h2 {
+        margin: 0 0 6px 0;
+      }
+      .stats {
+        display: flex;
+        gap: 10px;
+        margin: 8px 0 14px 0;
+        flex-wrap: wrap;
+      }
+      .stat {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 700;
+      }
+      .list {
+        margin-top: 1rem; /* ↓ antes 15rem */
+        display: grid; /* grid é melhor que flex p/ lista vertical */
+        gap: 10px;
+        max-height: 60vh; /* ↓ era min-height; use max para caber na tela */
+        overflow: auto; /* rolagem só na lista */
+        overscroll-behavior: contain;
+      }
+
+      .item {
+        background: #fff;
+        color: #222;
+        border-radius: 14px;
+        padding: 12px 14px;
+        border-left: 6px solid #ddd;
+      }
+      .item.ok {
+        border-left-color: var(--ok);
+      }
+      .item.err {
+        border-left-color: var(--err);
+      }
+      .small {
+        color: #666;
+        font-size: 14px;
+        margin-top: 6px;
+      }
+      .again {
+        margin-top: 14px;
+        background: #111827;
+        color: #fff;
+        border: 0;
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="header">
+        <div class="brand">Quiz Excel • estilo Kahoot</div>
+        <div class="chip" id="counter">Pergunta 1 de N</div>
+      </div>
+
+      <div class="card" id="stage">
+        <!-- conteúdo dinâmico -->
+      </div>
     </div>
 
-    <div class="card" id="stage">
-      <!-- conteúdo dinâmico -->
-    </div>
-  </div>
+    <script>
+      /* ===================== DADOS ===================== */
+      /* Perguntas originais (baseadas nos Kahoots usados em aula) */
+      const rawQuestions = [
+        {
+          q: "Para padronizar o texto: <pre>'   João   da   Silva  '<pre> para 'João da Silva', qual função do Excel você usaria?",
+          options: ["MAIÚSCULA", "ARRUMAR", "PRI.MAIÚSCULA", "SUBSTITUIR"],
+          correct: 1,
+          explain:
+            "ARRUMAR remove espaços extras no meio e nas extremidades, mantendo apenas um espaço entre palavras.",
+        },
+        {
+          q: "Para transformar 'senai cepaf' em 'SENAI CEPAF', a função correta é:",
+          options: ["PRI.MAIÚSCULA", "MINÚSCULA", "MAIÚSCULA", "PRI.MINÚSCULA"],
+          correct: 2,
+          explain: "MAIÚSCULA converte todo o texto para letras maiúsculas.",
+        },
+        {
+          q: "Extrair 'CEP' de 'ES-CEP-2025' iniciando na 4ª posição e por 3 caracteres: que função aplica?",
+          options: ["ESQUERDA", "DIREITA", "EXT.TEXTO", "ARRUMAR"],
+          correct: 2,
+          explain:
+            "EXT.TEXTO(texto; início; núm_caracteres) retorna um trecho do meio.",
+        },
+        {
+          q: "Para pegar os 4 primeiros caracteres de 'ABCD1234', usamos:",
+          options: ["DIREITA", "EXT.TEXTO", "ESQUERDA", "PRI.MAIÚSCULA"],
+          correct: 2,
+          explain: "ESQUERDA(texto; n) devolve os n primeiros caracteres.",
+        },
+        {
+          q: "Sem fórmula na célula, que recurso destacaria automaticamente valores > 100 em vermelho?",
+          options: [
+            "Formatação Condicional",
+            "Tabela Dinâmica",
+            "Classificação",
+            "Filtro Avançado",
+          ],
+          correct: 0,
+          explain:
+            "A Formatação Condicional aplica regras visuais conforme critérios.",
+        },
+        {
+          q: "Qual função retorna VERDADEIRO somente se B2>0 e C2>0?",
+          options: ["SE", "E", "OU", "SEERRO"],
+          correct: 1,
+          explain:
+            "E(teste1; teste2; ...) só é VERDADEIRO quando todos os testes forem verdadeiros.",
+        },
+        {
+          q: "Qual função retorna VERDADEIRO se B2>0 ou C2>0?",
+          options: ["E", "SE", "SEERRO", "OU"],
+          correct: 3,
+          explain:
+            "OU(teste1; teste2; ...) é VERDADEIRO quando pelo menos um teste for verdadeiro.",
+        },
+        {
+          q: "Se B2 ≥ 7, retornar 'Aprovado'; caso contrário, 'Reprovado'. Qual fórmula está correta?",
+          options: [
+            '=SE(B2>=7;"Aprovado";"Reprovado")',
+            '=SE(B2>=7;"Reprovado";"Aprovado")',
+            '=SE(B2>7;"Aprovado")',
+            '=SEERRO(B2>=7;"Aprovado")',
+          ],
+          correct: 0,
+          explain:
+            "A sintaxe do SE é SE(teste_lógico; valor_se_verdadeiro; valor_se_falso).",
+        },
+        {
+          q: 'Somar C1:C10 somente quando A1:A10 = "Maçã" e B1:B10 = "ES". Qual função usar?',
+          options: ["SOMASE", "SOMASES", "SOMARPRODUTO", "CONT.SES"],
+          correct: 1,
+          explain: "SOMASES permite somar com dois ou mais critérios.",
+        },
+        {
+          q: "Quantas células NÃO vazias existem em A1:A100? Qual função conta isso?",
+          options: ["CONT.VALORES", "CONT.SE", "CONT.NÚM", "CONTAR.VAZIO"],
+          correct: 0,
+          explain:
+            "CONT.VALORES conta células não vazias (texto, número, etc.).",
+        },
+        {
+          q: "Para contar células vazias em B1:B50, usamos:",
+          options: ["CONTAR.VAZIO", "CONT.SE", "CONT.NÚM", "CONT.SES"],
+          correct: 0,
+          explain: "CONTAR.VAZIO retorna a quantidade de células vazias.",
+        },
+        {
+          q: "Contar apenas as células com números em D1:D20:",
+          options: ["CONT.NÚM", "CONT.VALORES", "ORDEM.EQ", "MÉDIA"],
+          correct: 0,
+          explain: "CONT.NÚM conta somente células com números.",
+        },
+        {
+          q: "Para retornar a posição (ranking) de E5 dentro do intervalo E1:E10, a função é:",
+          options: ["RANK", "CLASSIFICAR", "ORDEM.EQ", "MENOR"],
+          correct: 2,
+          explain: "ORDEM.EQ retorna a posição do número na lista.",
+        },
+        {
+          q: "Multiplicar pares de valores (Preço × Quantidade) e somar os resultados de uma vez:",
+          options: ["SOMASE", "SOMASES", "SOMARPRODUTO", "MULT"],
+          correct: 2,
+          explain:
+            "SOMARPRODUTO soma produtos de elementos correspondentes em intervalos.",
+        },
+        {
+          q: "Qual função retorna o maior valor em F1:F10?",
+          options: ["MÉDIA", "MÍN", "MÁXIMO", "SOMA"],
+          correct: 2,
+          explain: "MÁXIMO devolve o maior número de um intervalo.",
+        },
+        {
+          q: "Sobre datas: qual função retorna a data de hoje (do sistema)?",
+          options: ["DATA", "HOJE", "AGORA", "DIA"],
+          correct: 1,
+          explain: "HOJE() retorna somente a data atual.",
+        },
+        {
+          q: "Se hoje é 15/03/2025, qual resultado de =ANO(HOJE())?",
+          options: ["03", "15", "2025", "1"],
+          correct: 2,
+          explain: "ANO(data) devolve o ano (2025).",
+        },
+        {
+          q: "Qual função retorna o número do dia da semana (1–7) para uma data?",
+          options: ["DIA.DA.SEMANA", "DIA", "MÊS", "HORA"],
+          correct: 0,
+          explain:
+            "DIA.DA.SEMANA(data; [tipo]) retorna 1–7 conforme a configuração.",
+        },
+        {
+          q: "Para extrair a hora de um horário em célula (ex.: 14:35:20), usamos:",
+          options: ["MINUTO", "SEGUNDO", "HORA", "AGORA"],
+          correct: 2,
+          explain: "HORA(horário) devolve a parte da hora.",
+        },
+        {
+          q: "Para avançar 5 DIAS ÚTEIS a partir de hoje, qual função retorna a nova data?",
+          options: ["DIAS", "DIATRABALHO.INTL", "DATA", "SOMASES"],
+          correct: 1,
+          explain:
+            "DIATRABALHO.INTL(data_inicial; dias_úteis; [fim_de_semana; feriados]) pula fins de semana/feriados.",
+        },
+      ];
 
-<script>
-/* ===================== DADOS ===================== */
-/* Perguntas originais (baseadas nos Kahoots usados em aula) */
-const rawQuestions = [
-  {
-    q: "Para padronizar o texto <pre>'   João   da   Silva  '</pre> para 'João da Silva', qual função do Excel você usaria?",
-    options: ["MAIÚSCULA","ARRUMAR","PRI.MAIÚSCULA","SUBSTITUIR"],
-    correct: 1,
-    explain: "ARRUMAR remove espaços extras no meio e nas extremidades, mantendo apenas um espaço entre palavras."
-  },
-  {
-    q: "Para transformar 'senai cepaf' em 'SENAI CEPAF', a função correta é:",
-    options: ["PRI.MAIÚSCULA","MINÚSCULA","MAIÚSCULA","PRI.MINÚSCULA"],
-    correct: 2,
-    explain: "MAIÚSCULA converte todo o texto para letras maiúsculas."
-  },
-  {
-    q: "Extrair 'CEP' de 'ES-CEP-2025' iniciando na 4ª posição e por 3 caracteres: que função aplica?",
-    options: ["ESQUERDA","DIREITA","EXT.TEXTO","ARRUMAR"],
-    correct: 2,
-    explain: "EXT.TEXTO(texto; início; núm_caracteres) retorna um trecho do meio."
-  },
-  {
-    q: "Para pegar os 4 primeiros caracteres de 'ABCD1234', usamos:",
-    options: ["DIREITA","EXT.TEXTO","ESQUERDA","PRI.MAIÚSCULA"],
-    correct: 2,
-    explain: "ESQUERDA(texto; n) devolve os n primeiros caracteres."
-  },
-  {
-    q: "Sem fórmula na célula, que recurso destacaria automaticamente valores > 100 em vermelho?",
-    options: ["Formatação Condicional","Tabela Dinâmica","Classificação","Filtro Avançado"],
-    correct: 0,
-    explain: "A Formatação Condicional aplica regras visuais conforme critérios."
-  },
-  {
-    q: "Qual função retorna VERDADEIRO somente se B2>0 e C2>0?",
-    options: ["SE","E","OU","SEERRO"],
-    correct: 1,
-    explain: "E(teste1; teste2; ...) só é VERDADEIRO quando todos os testes forem verdadeiros."
-  },
-  {
-    q: "Qual função retorna VERDADEIRO se B2>0 ou C2>0?",
-    options: ["E","SE","SEERRO","OU"],
-    correct: 3,
-    explain: "OU(teste1; teste2; ...) é VERDADEIRO quando pelo menos um teste for verdadeiro."
-  },
-  {
-    q: "Se B2 ≥ 7, retornar 'Aprovado'; caso contrário, 'Reprovado'. Qual fórmula está correta?",
-    options: [
-      "=SE(B2>=7;\"Aprovado\";\"Reprovado\")",
-      "=SE(B2>=7;\"Reprovado\";\"Aprovado\")",
-      "=SE(B2>7;\"Aprovado\")",
-      "=SEERRO(B2>=7;\"Aprovado\")"
-    ],
-    correct: 0,
-    explain: "A sintaxe do SE é SE(teste_lógico; valor_se_verdadeiro; valor_se_falso)."
-  },
-  {
-    q: "Somar C1:C10 somente quando A1:A10 = \"Maçã\" e B1:B10 = \"ES\". Qual função usar?",
-    options: ["SOMASE","SOMASES","SOMARPRODUTO","CONT.SES"],
-    correct: 1,
-    explain: "SOMASES permite somar com dois ou mais critérios."
-  },
-  {
-    q: "Quantas células NÃO vazias existem em A1:A100? Qual função conta isso?",
-    options: ["CONT.VALORES","CONT.SE","CONT.NÚM","CONTAR.VAZIO"],
-    correct: 0,
-    explain: "CONT.VALORES conta células não vazias (texto, número, etc.)."
-  },
-  {
-    q: "Para contar células vazias em B1:B50, usamos:",
-    options: ["CONTAR.VAZIO","CONT.SE","CONT.NÚM","CONT.SES"],
-    correct: 0,
-    explain: "CONTAR.VAZIO retorna a quantidade de células vazias."
-  },
-  {
-    q: "Contar apenas as células com números em D1:D20:",
-    options: ["CONT.NÚM","CONT.VALORES","ORDEM.EQ","MÉDIA"],
-    correct: 0,
-    explain: "CONT.NÚM conta somente células com números."
-  },
-  {
-    q: "Para retornar a posição (ranking) de E5 dentro do intervalo E1:E10, a função é:",
-    options: ["RANK","CLASSIFICAR","ORDEM.EQ","MENOR"],
-    correct: 2,
-    explain: "ORDEM.EQ retorna a posição do número na lista."
-  },
-  {
-    q: "Multiplicar pares de valores (Preço × Quantidade) e somar os resultados de uma vez:",
-    options: ["SOMASE","SOMASES","SOMARPRODUTO","MULT"],
-    correct: 2,
-    explain: "SOMARPRODUTO soma produtos de elementos correspondentes em intervalos."
-  },
-  {
-    q: "Qual função retorna o maior valor em F1:F10?",
-    options: ["MÉDIA","MÍN","MÁXIMO","SOMA"],
-    correct: 2,
-    explain: "MÁXIMO devolve o maior número de um intervalo."
-  },
-  {
-    q: "Sobre datas: qual função retorna a data de hoje (do sistema)?",
-    options: ["DATA","HOJE","AGORA","DIA"],
-    correct: 1,
-    explain: "HOJE() retorna somente a data atual."
-  },
-  {
-    q: "Se hoje é 15/03/2025, qual resultado de =ANO(HOJE())?",
-    options: ["03","15","2025","1"],
-    correct: 2,
-    explain: "ANO(data) devolve o ano (2025)."
-  },
-  {
-    q: "Qual função retorna o número do dia da semana (1–7) para uma data?",
-    options: ["DIA.DA.SEMANA","DIA","MÊS","HORA"],
-    correct: 0,
-    explain: "DIA.DA.SEMANA(data; [tipo]) retorna 1–7 conforme a configuração."
-  },
-  {
-    q: "Para extrair a hora de um horário em célula (ex.: 14:35:20), usamos:",
-    options: ["MINUTO","SEGUNDO","HORA","AGORA"],
-    correct: 2,
-    explain: "HORA(horário) devolve a parte da hora."
-  },
-  {
-    q: "Para avançar 5 DIAS ÚTEIS a partir de hoje, qual função retorna a nova data?",
-    options: ["DIAS","DIATRABALHO.INTL","DATA","SOMASES"],
-    correct: 1,
-    explain: "DIATRABALHO.INTL(data_inicial; dias_úteis; [fim_de_semana; feriados]) pula fins de semana/feriados."
-  }
-];
+      /* ====== Pequenos utilitários ====== */
+      function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+      function prepare(questions) {
+        // (Opcional) embaralha opções preservando índice correto
+        return questions.map((q) => {
+          const map = q.options.map((opt, idx) => ({ opt, idx }));
+          shuffle(map);
+          const options = map.map((m) => m.opt);
+          const correct = map.findIndex((m) => m.idx === q.correct);
+          return { ...q, options, correct };
+        });
+      }
 
-/* ====== Pequenos utilitários ====== */
-function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
-function prepare(questions){
-  // (Opcional) embaralha opções preservando índice correto
-  return questions.map(q=>{
-    const map = q.options.map((opt,idx)=>({opt,idx}));
-    shuffle(map);
-    const options = map.map(m=>m.opt);
-    const correct = map.findIndex(m=>m.idx===q.correct);
-    return {...q, options, correct};
-  });
-}
+      /* ====== Estado ====== */
+      const QUESTIONS = prepare(rawQuestions);
+      let i = 0;
+      let results = []; // {q, options, picked, correct}
 
-/* ====== Estado ====== */
-const QUESTIONS = prepare(rawQuestions);
-let i = 0;
-let results = []; // {q, options, picked, correct}
+      /* ====== Renderização ====== */
+      const stage = document.getElementById("stage");
+      const counter = document.getElementById("counter");
 
-/* ====== Renderização ====== */
-const stage = document.getElementById('stage');
-const counter = document.getElementById('counter');
+      function renderQuestion() {
+        const total = QUESTIONS.length;
+        counter.textContent = `Pergunta ${i + 1} de ${total}`;
 
-function renderQuestion(){
-  const total = QUESTIONS.length;
-  counter.textContent = `Pergunta ${i+1} de ${total}`;
+        const { q, options } = QUESTIONS[i];
 
-  const {q, options} = QUESTIONS[i];
-
-  stage.innerHTML = `
+        stage.innerHTML = `
     <div class="qtext">${q}</div>
     <div class="meta">Escolha uma alternativa. A correção é imediata.</div>
 
@@ -276,80 +466,87 @@ function renderQuestion(){
     <div id="feedback" class="feedback"></div>
 
     <div class="controls">
-      <div class="progress"><div class="bar" id="bar" style="width:${(i/total)*100}%"></div></div>
+      <div class="progress"><div class="bar" id="bar" style="width:${
+        (i / total) * 100
+      }%"></div></div>
       <button id="next" class="next" disabled>Próxima ▶</button>
     </div>
   `;
 
-  const answersEl = document.getElementById('answers');
-  const palette = ["opt-red","opt-blue","opt-yellow","opt-green"];
-  const symbols = ["▲","◆","●","■"];
+        const answersEl = document.getElementById("answers");
+        const palette = ["opt-red", "opt-blue", "opt-yellow", "opt-green"];
+        const symbols = ["▲", "◆", "●", "■"];
 
-  options.forEach((text, k)=>{
-    const btn = document.createElement('button');
-    btn.className = `btn ${palette[k%4]}`;
-    btn.innerHTML = `<span class="shape">${symbols[k%4]}</span> <span>${text}</span>`;
-    btn.addEventListener('click', ()=>checkAnswer(k, btn));
-    answersEl.appendChild(btn);
-  });
+        options.forEach((text, k) => {
+          const btn = document.createElement("button");
+          btn.className = `btn ${palette[k % 4]}`;
+          btn.innerHTML = `<span class="shape">${
+            symbols[k % 4]
+          }</span> <span>${text}</span>`;
+          btn.addEventListener("click", () => checkAnswer(k, btn));
+          answersEl.appendChild(btn);
+        });
 
-  document.getElementById('next').addEventListener('click', nextQuestion);
-}
+        document.getElementById("next").addEventListener("click", nextQuestion);
+      }
 
-function checkAnswer(pickedIndex, btnEl){
-  // desabilitar tudo
-  const buttons = [...document.querySelectorAll('.btn')];
-  buttons.forEach(b=>b.disabled = true);
+      function checkAnswer(pickedIndex, btnEl) {
+        // desabilitar tudo
+        const buttons = [...document.querySelectorAll(".btn")];
+        buttons.forEach((b) => (b.disabled = true));
 
-  const qobj = QUESTIONS[i];
-  const isCorrect = pickedIndex === qobj.correct;
+        const qobj = QUESTIONS[i];
+        const isCorrect = pickedIndex === qobj.correct;
 
-  // marcar cores
-  if(isCorrect){
-    btnEl.style.outline = `4px solid var(--ok)`;
-  }else{
-    btnEl.style.outline = `4px solid var(--err)`;
-    // destacar correta
-    buttons[qobj.correct].style.outline = `4px solid var(--ok)`;
-  }
+        // marcar cores
+        if (isCorrect) {
+          btnEl.style.outline = `4px solid var(--ok)`;
+        } else {
+          btnEl.style.outline = `4px solid var(--err)`;
+          // destacar correta
+          buttons[qobj.correct].style.outline = `4px solid var(--ok)`;
+        }
 
-  // feedback
-  const fb = document.getElementById('feedback');
-  fb.className = `feedback ${isCorrect ? 'ok':'err'}`;
-  fb.textContent = isCorrect ? '✅ Correto!' : `❌ Ops, não é essa.`;
-  fb.insertAdjacentHTML('beforeend', `<div class="small">Dica: ${qobj.explain}</div>`);
+        // feedback
+        const fb = document.getElementById("feedback");
+        fb.className = `feedback ${isCorrect ? "ok" : "err"}`;
+        fb.textContent = isCorrect ? "✅ Correto!" : `❌ Ops, não é essa.`;
+        fb.insertAdjacentHTML(
+          "beforeend",
+          `<div class="small">Dica: ${qobj.explain}</div>`
+        );
 
-  // salvar resultado
-  results.push({
-    q: qobj.q,
-    options: qobj.options,
-    picked: pickedIndex,
-    correct: qobj.correct
-  });
+        // salvar resultado
+        results.push({
+          q: qobj.q,
+          options: qobj.options,
+          picked: pickedIndex,
+          correct: qobj.correct,
+        });
 
-  // liberar próxima
-  document.getElementById('next').disabled = false;
-}
+        // liberar próxima
+        document.getElementById("next").disabled = false;
+      }
 
-function nextQuestion(){
-  const total = QUESTIONS.length;
-  if(i < total-1){
-    i++;
-    renderQuestion();
-  }else{
-    renderResults();
-  }
-}
+      function nextQuestion() {
+        const total = QUESTIONS.length;
+        if (i < total - 1) {
+          i++;
+          renderQuestion();
+        } else {
+          renderResults();
+        }
+      }
 
-function renderResults(){
-  const total = QUESTIONS.length;
-  const hits = results.filter(r=>r.picked===r.correct).length;
-  const misses = total - hits;
-  const pHit = Math.round((hits/total)*100);
-  const pMiss = 100 - pHit;
+      function renderResults() {
+        const total = QUESTIONS.length;
+        const hits = results.filter((r) => r.picked === r.correct).length;
+        const misses = total - hits;
+        const pHit = Math.round((hits / total) * 100);
+        const pMiss = 100 - pHit;
 
-  document.querySelector('.header .chip').textContent = "Resultado";
-  stage.innerHTML = `
+        document.querySelector(".header .chip").textContent = "Resultado";
+        stage.innerHTML = `
     <div class="results">
       <h2>Seu desempenho</h2>
       <div class="stats">
@@ -361,34 +558,43 @@ function renderResults(){
     </div>
   `;
 
-  const list = document.getElementById('list');
-  results.forEach((r, idx)=>{
-    const ok = r.picked===r.correct;
-    const your = r.options[r.picked] ?? "(sem resposta)";
-    const right = r.options[r.correct];
-    const el = document.createElement('div');
-    el.className = `item ${ok?'ok':'err'}`;
-    el.innerHTML = `
-      <div><strong>${idx+1}.</strong> ${r.q}</div>
-      <div class="small">${ok ? '✅ Acertou' : '❌ Errou'} — Sua resposta: <em>${your}</em> • Correta: <strong>${right}</strong></div>
+        const list = document.getElementById("list");
+        results.forEach((r, idx) => {
+          const ok = r.picked === r.correct;
+          const your = r.options[r.picked] ?? "(sem resposta)";
+          const right = r.options[r.correct];
+          const el = document.createElement("div");
+          el.className = `item ${ok ? "ok" : "err"}`;
+          el.innerHTML = `
+      <div><strong>${idx + 1}.</strong> ${r.q}</div>
+      <div class="small">${
+        ok ? "✅ Acertou" : "❌ Errou"
+      } — Sua resposta: <em>${your}</em> • Correta: <strong>${right}</strong></div>
     `;
-    list.appendChild(el);
-  });
+          list.appendChild(el);
+        });
 
-  document.getElementById('again').addEventListener('click', ()=>{
-    i = 0; results = [];
-    renderQuestion();
-  });
-  // barra completa
-  const fakeBar = document.createElement('div');
-  fakeBar.className='bar'; fakeBar.style.width='100%';
-  const prog = document.createElement('div');
-  prog.className='progress'; prog.appendChild(fakeBar);
-  stage.prepend(prog);
-}
+        document.getElementById("again").addEventListener("click", () => {
+          i = 0;
+          results = [];
+          renderQuestion();
+        });
 
-/* start */
-renderQuestion();
-</script>
-</body>
+        // barra completa (cosmético)
+        const fakeBar = document.createElement("div");
+        fakeBar.className = "bar";
+        fakeBar.style.width = "100%";
+        const prog = document.createElement("div");
+        prog.className = "progress";
+        prog.appendChild(fakeBar);
+        stage.prepend(prog);
+
+        // NOVO: garante que o topo do relatório apareça
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      /* start */
+      renderQuestion();
+    </script>
+  </body>
 </html>
